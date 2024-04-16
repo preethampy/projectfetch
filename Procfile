@@ -1,1 +1,1 @@
-web: gunicorn appfetch.wsgi --log-file -
+web: gunicorn projectfetch.wsgi --log-file -
