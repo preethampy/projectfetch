@@ -5,6 +5,12 @@ import requests
 import os
 load_dotenv()
 
+'''
+utils.py
+This module contains utility related or helper functions that perform some common or specific tasks
+that can be reused. Also to keep the code more organized.
+'''
+
 # API keys from .env file
 coingecko_key = os.getenv("coingecko_key")
 api_key = os.getenv("api_key")
@@ -34,6 +40,7 @@ def get_onchain_data():
     '''
     try:
         response = make_request(url=onchain_data_endpoint,headers={})['data']['attributes']['ohlcv_list'][::-1]
+        # Looping through list of lists and extracting the values we need and constructing a new list of dict and returning it
         onchain_data_list = [{"timestamp":item[0],"priceUniswapV3":item[1],"blockNo":unixToBlock(item[0])} for item in response]
         return onchain_data_list
     except:
@@ -51,9 +58,10 @@ def unixToBlock(unixTime):
         "date": str(unixTime),
         "chain": "eth"
         }
+        # Calls the function .get_date_to_block() on moralis block module with necessary params and stores the data returned 
         response = evm_api.block.get_date_to_block(api_key=api_key,params=params)
-        block_number = response["block"]
-        return block_number
+        # Return only the block number
+        return response["block"]
     except:
         raise "Failed"
 
@@ -73,8 +81,11 @@ def get_offchain_data():
             "accept": "application/json",
             "x-cg-demo-api-key": coingecko_key}
         response = make_request(url=offchain_data_endpoint,headers=headers)['prices']
+        # Excluding the last item from list of lists in response variable because the data it has is not useful for us
         preprocess_data = response[:len(response)-1]
+        # Looping and converting unix timestamp by removing milliseconds from each timestamp using divmod
         processed_data = [[divmod(x[0],1000)[0],x[1]] for x in preprocess_data]
+        # Looping through list of lists and extracting the values we need and constructing a new list of dict and returning it
         offchain_data_list = [{"timestamp":x[0],"priceCoingecko":x[1]} for x in processed_data]
         return offchain_data_list
     except Exception as e:
@@ -86,10 +97,11 @@ def prepare_and_respond():
     Raises exception if any error occurs
     '''
     try:
+        # Gets the latest updated data from db and stores it in variable
         filtered_onchain_data = db_operations.get_onchain_data_filtered_current()
-        
         # Used serializers to convert complex django datatype QuerySet to JSON format
         serialized_data = serializers.OnChainDataSerializer(filtered_onchain_data,many=True).data
+        # Utilizing serialized data to construct a new structure that resembles the expected output of this assignment
         structured_data = [
             {"priceUniswapV3" : item["priceUniswapV3"],
              "priceCoingecko" : item["timestamp"]["priceCoingecko"],

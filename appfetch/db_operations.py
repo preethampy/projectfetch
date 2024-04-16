@@ -4,6 +4,12 @@ from . import models
 from . import db_operations
 from . import utils
 
+'''
+db_operations.py
+This module contains all the necessary functions that handles database-related operations
+
+'''
+
 def get_offchain_data_filtered_past():
     '''
     Gets all the objects from OffChainData model where last_update key is less than todays date
@@ -11,6 +17,7 @@ def get_offchain_data_filtered_past():
     Raises exception if any error occurs
     '''
     try:
+        # Using 'Q' Object to apply query for __lt lookup
         data = models.OffChainData.objects.filter(Q(last_updated__lt=date.today()))
         return data
     except:
@@ -39,7 +46,9 @@ def create_offchain_bulk(data):
     Raises exception on any errors
     '''
     try:
+        # preparing list of OffChainData model instances for each item in list of data
         offchain_data_list = [models.OffChainData(timestamp = item["timestamp"], priceCoingecko = item["priceCoingecko"]) for item in data]
+        # using the list prepared above, to create objects in bulk at once using .bulk_create()
         models.OffChainData.objects.bulk_create(offchain_data_list)
         return True
     except:
@@ -58,7 +67,9 @@ def create_onchain_bulk(data):
     Raises exception on any errors
     '''
     try:
+        # preparing list of OnChainData model instances for each item in list of data
         onchain_data_list = [models.OnChainData(timestamp_id = item["timestamp"], priceUniswapV3 = item["priceUniswapV3"],blockNo=item["blockNo"]) for item in data]
+        # using the list prepared above, to create objects in bulk at once using .bulk_create()
         models.OnChainData.objects.bulk_create(onchain_data_list)
         return True
     except:
@@ -74,11 +85,16 @@ def get_and_create_latest():
     Raises exception on any errors
     '''
     try:
+        # stores the coingecko data returned from get_offchain_data() in offchain_data
         offchain_data = utils.get_offchain_data()
+        # stores the geckoterminal data returned from get_onchain_data() in onchain_data
         onchain_data = utils.get_onchain_data()
+        # stores the boolean value returned from create_offchain_bulk() which insert data into database
         bulkdata_offchain_inserted = db_operations.create_offchain_bulk(offchain_data)
+        # stores the boolean value returned from create_onchain_bulk() which insert data into database
         bulkdata_onchain_inserted = db_operations.create_onchain_bulk(onchain_data)
         if bulkdata_offchain_inserted == True and bulkdata_onchain_inserted == True:
+            # responds with properly structured data / expected structure of data returned from prepare_and_respond()
             return utils.prepare_and_respond()
         else:
             return False
